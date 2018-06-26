@@ -35,27 +35,25 @@
 tokenfile() {
   if [ "$1" = "" ] ; then
     if [ "$GITHUB_HOST" = "" ] ; then
-      TOKENFILE="$HOME/.github.com.token"
+      echo "$HOME/.github.com.token"
     else
-      TOKENFILE="$HOME/.$GITHUB_HOST.token"
+      echo "$HOME/.$GITHUB_HOST.token"
     fi
   else
-    TOKENFILE="$HOME/.$1.token"
+    echo "$HOME/.$1.token"
   fi
 }
 
 set-gh-token() {
-  tokenfile "$2"
-  echo "$1" | openssl rsautl -encrypt -inkey $HOME/.ssh/id_rsa > $TOKENFILE
+  echo "$1" | openssl rsautl -encrypt -inkey $HOME/.ssh/id_rsa > $(tokenfile "$2")
 }
 
 get-gh-token() {
-  tokenfile "$2"
-  openssl rsautl -decrypt -inkey $HOME/.ssh/id_rsa -in $TOKENFILE
+  openssl rsautl -decrypt -inkey $HOME/.ssh/id_rsa -in $(tokenfile "$1")
 }
 
-# Add a `gh` command that wraps `hub`, directs it to github.com and gets your token.
-gh() {
+# Add a `_gh` command that wraps `hub`
+_gh() {
   local -a args
   local nargs
   args=("$@")
@@ -67,12 +65,34 @@ gh() {
     fi
   done
   # Set github.com as the GitHub host and retrieve your token.
-  #GITHUB_HOST=github.com 
-  GITHUB_TOKEN=$(get-gh-token) hub $args
+  hub $args
 }
 
+add-gh-host() {
+  if [ "$1" = "" ] || [ "$2" = "" ] ; then
+    echo "\
+usage: add-gh-host <hostname> <alias>
+  <hostname>  The github hostname to add a hub function for i.e. github.com
+  <alias>     The generated function name i.e. gh-pub.  $ gh-pub clone my-repo"
+    # ?=1
+  else
+    (>/dev/null 2>&1 ping -c 1 "$1")
+    _host_found=$?
+    if [ "$_host_found" = 0 ] ; then
+      # echo "Host '$1' found!"
+      read "?token: " _token
+      set-gh-token $_token $1
+      echo "\
+$2() {
+  GITHUB_HOST=$1 GITHUB_TOKEN=\$(get-gh-token $1) _gh \$@
+}
+compdef _hub $2=hub" > $HOME/.gh-func-$2
+      source $HOME/.gh-func-$2
+    else
+      echo "Host '$1' not found!"
+    fi
+  fi
+}
 
 # Add the path to this directory to `fpath`
 fpath=(${(%):-%N} $fpath)
-
-compdef _hub gh=hub
