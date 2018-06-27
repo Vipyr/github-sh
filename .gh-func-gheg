@@ -1,4 +1,0 @@
-gheg() {
-  GITHUB_HOST=github.ibm.com GITHUB_TOKEN=$(get-gh-token github.ibm.com) _gh $@
-}
-compdef _hub gheg=hub

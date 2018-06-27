@@ -117,7 +117,7 @@ usage: add-gh-host <hostname> <alias>
     (>/dev/null 2>&1 ping -c 1 "$1")
     _host_found=$?
     if [ "$_host_found" = 0 ] ; then
-      _function_file="$GITHUB_SH_DIR/.gh-func-$2"
+      _function_file="$GITHUB_SH_DIR/gh-func-$2"
       # Alert and abort for colliding function names
       check-function-file
       # _function_file is set to "" if the user decides to abort
