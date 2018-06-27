@@ -42,23 +42,30 @@ fi
 
 # GitHub Token Functions
 tokenfile() {
-  if [ "$1" = "" ] ; then
-    if [ "$GITHUB_HOST" = "" ] ; then
-      echo "$GITHUB_SH_DIR/github.com.token"
-    else
-      echo "$GITHUB_SH_DIR/$GITHUB_HOST.token"
-    fi
-  else
-    echo "$GITHUB_SH_DIR/$1.token"
-  fi
+  echo "$GITHUB_SH_DIR/$1.token"
 }
 
 set-gh-token() {
-  echo "$1" | openssl rsautl -encrypt -inkey $HOME/.ssh/id_rsa > $(tokenfile "$2")
+  if [ "$1" = "" ] || [ "$2" = "" ] ; then
+    echo "\
+usage: set-gh-token <token> <hostname>
+  <token>     Your Personal Access Token for <hostname>
+  <hostname>  The github hostname to set the token for i.e. github.com"
+    return 1
+  else
+    echo "$1" | openssl rsautl -encrypt -inkey $HOME/.ssh/id_rsa > $(tokenfile "$2")
+  fi
 }
 
 get-gh-token() {
-  openssl rsautl -decrypt -inkey $HOME/.ssh/id_rsa -in $(tokenfile "$1")
+  if [ "$1" = "" ] ; then
+    echo "\
+usage: get-gh-token <hostname>
+  <hostname>  The github hostname to get the token for i.e. github.com"
+    return 1
+  else
+    openssl rsautl -decrypt -inkey $HOME/.ssh/id_rsa -in $(tokenfile "$1")
+  fi
 }
 
 # Add a `_gh` command that wraps `hub`
@@ -103,8 +110,7 @@ check-function-file() {
     elif [ "$_duplicate_file_action" = "m" ] ; then
       read "?Change name to: " _move_name
       _move_function_file=$GITHUB_SH_DIR/gh-func-$_move_name
-      echo "\
-$_move_name() {" > $_move_function_file
+      echo "$_move_name() {" > $_move_function_file
       tail -n +2 $_function_file >> $_move_function_file
       source $_move_function_file
     elif [ "$_duplicate_file_action" = "r" ] ; then
@@ -119,7 +125,7 @@ add-gh-host() {
 usage: add-gh-host <hostname> <alias>
   <hostname>  The github hostname to add a hub function for i.e. github.com
   <alias>     The generated function name i.e. gh-pub.  $ gh-pub clone my-repo"
-    # ?=1
+    return 1
   else
     (>/dev/null 2>&1 ping -c 1 "$1")
     _host_found=$?
@@ -129,10 +135,12 @@ usage: add-gh-host <hostname> <alias>
       check-function-file
       # _function_file is set to "" if the user decides to abort
       if [ "$_function_file" != "" ] ; then
-        # Query for the PAT
-        read "?Personal Access Token ($1): " _token
-        # Save the PAT, encrypted with an ssh public key
-        set-gh-token $_token $1
+        # Query for the PAT, if needed
+        if ! [ -e $(tokenfile $1) ] ; then
+          read "?Personal Access Token ($1): " _token
+          # Save the PAT, encrypted with an ssh key
+          set-gh-token $_token $1
+        fi
         # Write and source the new shell function file
         echo "\
 $2() {
