@@ -31,7 +31,7 @@
 # Setup For GitHub Enterprise:
 #   Same as GitHub
 
-# GITHUB_SH_DIR=$(dirname ${(%):-%N})
+GITHUB_SH_PLUGIN_DIR=$(dirname "$BASH_SOURCE")
 GITHUB_SH_DIR=$HOME/.github-sh
 if ! [ -e $GITHUB_SH_DIR ] ; then
   mkdir $GITHUB_SH_DIR
@@ -70,18 +70,15 @@ usage: get-gh-token <hostname>
 
 # Add a `_gh` command that wraps `hub`
 _gh() {
-  local -a args
-  local nargs
   args=("$@")
-  nargs=$#args
-  for i in {1..$nargs} ; do
+  for i in "${!args[@]}" ; do
     if [ "${args[$i]}" = "pr" ] && [ "${args[$i+1]}" = "create" ] ; then
       args[$i]="pull-request"
       args[$i+1]=""
     fi
   done
   # Set github.com as the GitHub host and retrieve your token.
-  hub $args
+  hub ${args[@]}
 }
 
 check-function-file() {
@@ -115,6 +112,7 @@ check-function-file() {
       source $_move_function_file
     elif [ "$_duplicate_file_action" = "r" ] ; then
       # No change, the function will be overwritten naturally.
+      : # Bash Requires a "no-op" character to nop out conditional blocks
     fi
   fi
 }
@@ -137,7 +135,8 @@ usage: add-gh-host <hostname> <alias>
       if [ "$_function_file" != "" ] ; then
         # Query for the PAT, if needed
         if ! [ -e $(tokenfile $1) ] ; then
-          read "?Personal Access Token ($1): " _token
+          # In bash, read requires the '-p' argument for prompts
+          read -p "?Personal Access Token ($1): " _token
           # Save the PAT, encrypted with an ssh key
           set-gh-token $_token $1
         fi
@@ -146,7 +145,11 @@ usage: add-gh-host <hostname> <alias>
 $2() {
   GITHUB_HOST=$1 GITHUB_TOKEN=\$(get-gh-token $1) _gh \$@
 }
-compdef hub.zsh_completion $2=hub" > $_function_file
+source $GITHUB_SH_DIR/hub.bash_completion.sh $2=hub" > $_function_file
+
+        # Add the completions file for bash to the sh dir
+        cp $GITHUB_SH_PLUGIN_DIR/hub.bash_completion.sh $GITHUB_SH_DIR/.
+
         source $_function_file
       fi
     else
