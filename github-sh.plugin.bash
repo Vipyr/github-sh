@@ -143,7 +143,7 @@ usage: add-gh-host <hostname> <alias>
         # Write and source the new shell function file
         echo "\
 $2() {
-  GITHUB_HOST=$1 GITHUB_TOKEN=\$(get-gh-token $1) _gh \$@
+  GITHUB_HOST=$1 GITHUB_TOKEN=\$(get-gh-token $1) _gh \"\$@\"
 }
 source $GITHUB_SH_DIR/hub.bash_completion.sh $2=hub" > $_function_file
 
