@@ -78,7 +78,7 @@ _gh() {
     fi
   done
   # Set github.com as the GitHub host and retrieve your token.
-  hub ${args[@]}
+  hub "${args[@]}"
 }
 
 check-function-file() {
