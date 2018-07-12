@@ -146,7 +146,7 @@ usage: add-gh-host <hostname> <alias>
 $2() {
   GITHUB_HOST=$1 GITHUB_TOKEN=\$(get-gh-token $1) _gh \$@
 }
-compdef hub.zsh_completion $2=hub" > $_function_file
+compdef $2=hub" > $_function_file
         source $_function_file
       fi
     else
