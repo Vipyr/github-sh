@@ -86,7 +86,7 @@ check-function-file() {
     # Get user input about what to do if the file already exists
     _duplicate_file_action=""
     while [ "$_duplicate_file_action" = "" ] ; do
-      read -k 1 "?$_function_file exists! abort, move, replace? [amR]: " _in
+      read -p "$_function_file exists! abort, move, replace? [amR]: " _in
       echo
       if   [ "$_in" = "a" ] || [ "$_in" = "A" ] ; then
         _duplicate_file_action="a"
@@ -105,7 +105,7 @@ check-function-file() {
     if   [ "$_duplicate_file_action" = "a" ] ; then
       _function_file=""
     elif [ "$_duplicate_file_action" = "m" ] ; then
-      read "?Change name to: " _move_name
+      read -p "Change name to: " _move_name
       _move_function_file=$GITHUB_SH_DIR/gh-func-$_move_name
       echo "$_move_name() {" > $_move_function_file
       tail -n +2 $_function_file >> $_move_function_file
