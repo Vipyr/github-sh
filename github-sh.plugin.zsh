@@ -23,13 +23,7 @@
 #           [x] read:discussion
 #   Co  py the token value
 #     *****IMPORTANT***** This is the only time you will see this token value!
-#   Run `set-gh-token <your-token> [github-hostname]`
-#       If `github-hostname` is not provided, `$GITHUB_HOST` is used.
-#       If `$GITHUB_HOST` is not set, then `github.com` is used.
-#   User 
-# 
-# Setup For GitHub Enterprise:
-#   Same as GitHub
+#   Run `add-gh-host <github-hostname> <alias>`
 
 # GITHUB_SH_DIR=$(dirname ${(%):-%N})
 GITHUB_SH_DIR=$HOME/.github-sh
@@ -46,6 +40,9 @@ tokenfile() {
 }
 
 set-gh-token() {
+  if [ "$_ssh_key" = "" ] ; then
+    _ssh_key="$HOME/.ssh/id_rsa"
+  fi
   if [ "$1" = "" ] || [ "$2" = "" ] ; then
     echo "\
 usage: set-gh-token <token> <hostname>
@@ -53,18 +50,21 @@ usage: set-gh-token <token> <hostname>
   <hostname>  The github hostname to set the token for i.e. github.com"
     return 1
   else
-    echo "$1" | openssl rsautl -encrypt -inkey $HOME/.ssh/id_rsa > $(tokenfile "$2")
+    echo "$1" | openssl rsautl -encrypt -inkey $_ssh_key > $(tokenfile "$2")
   fi
 }
 
 get-gh-token() {
+  if [ "$_ssh_key" = "" ] ; then
+    _ssh_key="$HOME/.ssh/id_rsa"
+  fi
   if [ "$1" = "" ] ; then
     echo "\
 usage: get-gh-token <hostname>
   <hostname>  The github hostname to get the token for i.e. github.com"
     return 1
   else
-    openssl rsautl -decrypt -inkey $HOME/.ssh/id_rsa -in $(tokenfile "$1")
+    openssl rsautl -decrypt -inkey $_ssh_key -in $(tokenfile "$1")
   fi
 }
 
@@ -137,6 +137,11 @@ usage: add-gh-host <hostname> <alias>
       if [ "$_function_file" != "" ] ; then
         # Query for the PAT, if needed
         if ! [ -e $(tokenfile $1) ] ; then
+          _ssh_key="$HOME/.ssh/id_rsa"
+          read "?Ssh Key (\$HOME/.ssh/id_rsa): " _ssh_key_input
+          if [ "$_ssh_key_input" != "" ] ; then
+            _ssh_key=$_ssh_key_input
+          fi
           read "?Personal Access Token ($1): " _token
           # Save the PAT, encrypted with an ssh key
           set-gh-token $_token $1
@@ -144,7 +149,7 @@ usage: add-gh-host <hostname> <alias>
         # Write and source the new shell function file
         echo "\
 $2() {
-  GITHUB_HOST=$1 GITHUB_TOKEN=\$(get-gh-token $1) _gh \$@
+  GITHUB_HOST=$1 GITHUB_TOKEN=\$(_ssh_key=$_ssh_key get-gh-token $1) _gh \$@
 }
 compdef $2=hub" > $_function_file
         source $_function_file
