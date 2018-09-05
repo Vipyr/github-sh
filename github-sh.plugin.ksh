@@ -31,7 +31,7 @@
 # Setup For GitHub Enterprise:
 #   Same as GitHub
 
-GITHUB_SH_PLUGIN_DIR=$( cd $(dirname "$0") ; pwd )
+# GITHUB_SH_PLUGIN_DIR=$( cd $(dirname "$0") ; pwd )
 GITHUB_SH_DIR=$HOME/.github-sh
 if ! [ -e $GITHUB_SH_DIR ] ; then
   mkdir $GITHUB_SH_DIR
