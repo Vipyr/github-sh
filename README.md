@@ -69,6 +69,10 @@ Check the following:
 Copy the token value
  *****IMPORTANT***** This is the only time you will see this token value!
 
-Run `set-gh-token <your-token> [github-hostname]`
-    If `github-hostname` is not provided, `$GITHUB_HOST` is used.
-    If `$GITHUB_HOST` is not set, then `github.com` is used.
+Run `add-gh-host` to get everything set.
+
+```
+add-gh-host <hostname> <alias>
+  <hostname>  The github hostname to add a hub function for i.e. github.com
+  <alias>     The generated function name i.e. gh-pub.  $ gh-pub clone my-repo"
+```
