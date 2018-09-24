@@ -31,7 +31,17 @@ source /path/to/github-sh/clone/github-sh.plugin.zsh
 
 ### Installing with `bash`:
 
-TODO: Fill this section in
+Add the following to your `.bashrc`:
+```
+source /path/to/github-sh/clone/github-sh.plugin.bash
+```
+
+### Installing with `ksh`:
+
+Add the following to your `.kshrc`:
+```
+source /path/to/github-sh/clone/github-sh.plugin.ksh
+```
 
 ### Setting up your hub wrappers:
 
