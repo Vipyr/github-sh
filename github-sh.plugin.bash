@@ -175,7 +175,7 @@ source $GITHUB_SH_DIR/hub.bash_completion.sh $2=hub" > $_function_file
         cp $GITHUB_SH_INSTALL_DIR/hub.bash_completion.sh $GITHUB_SH_DIR/.
 
         source $_function_file
-        echo "github-sh: Created $2 alias for hub with token!" 
+        echo "github-sh: Created alias '$2' for hub with token!" 
       fi
     else
       echo "Host '$1' not found!"

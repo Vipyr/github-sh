@@ -171,7 +171,7 @@ $2() {
 $2=hub" > $_function_file
 
         source $_function_file
-        echo "github-sh: Created $2 alias for hub with token!" 
+        echo "github-sh: Created alias '$2' for hub with token!" 
       fi
     else
       echo "Host '$1' not found!"
