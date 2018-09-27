@@ -183,7 +183,7 @@ source $GITHUB_SH_DIR/hub.bash_completion.sh $2=hub" > $_function_file
 }
 
 remove-gh-host() {
-  if [ "$1" = ""] ; then 
+  if [ "$1" = "" ] ; then 
     echo"\
 usage: remove-gh-host <hostname>  Removes a specific host from your configuration
        remove-gh-host --all       Removes all hosts and configurations for github-sh"
@@ -197,7 +197,6 @@ usage: remove-gh-host <hostname>  Removes a specific host from your configuratio
           unset -f $func_name
         fi
       done
-  
       # Then just blow everything away 
       rm -rf $GITHUB_SH_DIR/*
     else
