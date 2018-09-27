@@ -135,6 +135,7 @@ check-function-file() {
       source $_move_function_file
     elif [ "$_duplicate_file_action" = "r" ] ; then
       # No change, the function will be overwritten naturally.
+      : # Bash Requires a "no-op" character to nop out conditional blocks
     fi
   fi
 }
