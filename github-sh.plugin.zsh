@@ -25,32 +25,47 @@
 #     *****IMPORTANT***** This is the only time you will see this token value!
 #   Run `add-gh-host <github-hostname> <alias>`
 
-# GITHUB_SH_DIR=$(dirname ${(%):-%N})
+GITHUB_SH_INSTALL_DIR=$(dirname ${(%):-%N})
 GITHUB_SH_DIR=$HOME/.github-sh
-if ! [ -e $GITHUB_SH_DIR ] ; then
-  mkdir $GITHUB_SH_DIR
-elif ! [ -d $GITHUB_SH_DIR ] ; then
-  echo "$GITHUB_SH_DIR exists and is not a directory, aborting 'source github-sh'"
-  return 1
-fi
+
+gh-init-dir() {
+  if ! [ -e $GITHUB_SH_DIR ] ; then
+    mkdir $GITHUB_SH_DIR
+  elif ! [ -d $GITHUB_SH_DIR ] ; then
+    echo "$GITHUB_SH_DIR exists and is not a directory, aborting 'source github-sh'"
+    return 1
+  fi
+}
 
 # GitHub Token Functions
 tokenfile() {
   echo "$GITHUB_SH_DIR/$1.token"
 }
 
-gh-key-file() {
-  echo "$GITHUB_SH_DIR/$1.key"
+gh-init-gpg-agent() {
+  local __gpg_agent_rc
+  gpg-agent --quiet 2>/dev/null
+  __gpg_agent_rc=$?
+  if [ "$__gpg_agent_rc" != "0" ] ; then
+    eval $(gpg-agent --daemon)
+  fi
 }
 
-gh-ssh-key() {
-  if ! [ -e "$(gh-key-file $1)" ] ; then
-    echo -n "$HOME/.ssh/id_rsa" > "$(gh-key-file $1)"
+gh-init-gpg-key() {
+  gh-init-gpg-agent
+  local _key_exists
+  gpg --quiet --list-keys | grep GithubShell >/dev/null
+  _key_exists=$?
+  if [ "$_key_exists" != "0" ] ; then
+    echo "No GPG Key for github-sh detected, generating key \"GithubShell\" - this will take a while..."
+    gpg --batch --gen-key "$GITHUB_SH_INSTALL_DIR/gpg-gen-key"
+    echo "Key generated!"
   fi
-  cat "$(gh-key-file $1)"
 }
 
 set-gh-token() {
+  gh-init-dir
+  gh-init-gpg-key
   if [ "$1" = "" ] || [ "$2" = "" ] ; then
     echo "\
 usage: set-gh-token <token> <hostname>
@@ -58,18 +73,21 @@ usage: set-gh-token <token> <hostname>
   <hostname>  The github hostname to set the token for i.e. github.com"
     return 1
   else
-    echo "$1" | openssl rsautl -encrypt -inkey $(gh-ssh-key "$2") > $(tokenfile "$2")
+    echo "$1" | gpg --quiet -o $(tokenfile "$2") --encrypt --recipient GithubShell
+    echo "$2 token added!"
   fi
 }
 
 get-gh-token() {
+  gh-init-dir
+  gh-init-gpg-key
   if [ "$1" = "" ] ; then
     echo "\
 usage: get-gh-token <hostname>
   <hostname>  The github hostname to get the token for i.e. github.com"
     return 1
   else
-    openssl rsautl -decrypt -inkey $(gh-ssh-key "$1") -in $(tokenfile "$1")
+    gpg --quiet --no-tty --decrypt $(tokenfile "$1") 2>/dev/null
   fi
 }
 
@@ -125,6 +143,7 @@ check-function-file() {
 }
 
 add-gh-host() {
+  gh-init-dir
   if [ "$1" = "" ] || [ "$2" = "" ] ; then
     echo "\
 usage: add-gh-host <hostname> <alias>
@@ -140,12 +159,6 @@ usage: add-gh-host <hostname> <alias>
       check-function-file
       # _function_file is set to "" if the user decides to abort
       if [ "$_function_file" != "" ] ; then
-        _ssh_key="$HOME/.ssh/id_rsa"
-        read "?Ssh Key (\$HOME/.ssh/id_rsa): " _ssh_key_input
-        if [ "$_ssh_key_input" != "" ] ; then
-          _ssh_key=$_ssh_key_input
-        fi
-        echo -n "$_ssh_key" > "$(gh-key-file $1)"
         # Query for the PAT, if needed
         if ! [ -e $(tokenfile $1) ] ; then
           read "?Personal Access Token ($1): " _token
@@ -165,6 +178,9 @@ compdef $2=hub" > $_function_file
     fi
   fi
 }
+
+# Initialize the github shell directory
+gh-init-dir
 
 # Add the path to this directory to `fpath`
 fpath=($GITHUB_SH_DIR $fpath)
