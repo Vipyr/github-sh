@@ -171,9 +171,6 @@ $2() {
 }
 source $GITHUB_SH_DIR/hub.bash_completion.sh $2=hub" > $_function_file
 
-        # Add the completions file for bash to the sh dir
-        cp $GITHUB_SH_INSTALL_DIR/hub.bash_completion.sh $GITHUB_SH_DIR/.
-
         source $_function_file
         echo "github-sh: Created $2 alias for hub with token!" 
       fi
