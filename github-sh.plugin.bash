@@ -25,7 +25,7 @@
 #     *****IMPORTANT***** This is the only time you will see this token value!
 #   Run `add-gh-host <github-hostname> <alias>`
 
-GITHUB_SH_PLUGIN_DIR=$(dirname "$BASH_SOURCE")
+GITHUB_SH_INSTALL_DIR=$(dirname "$BASH_SOURCE")
 GITHUB_SH_DIR=$HOME/.github-sh
 
 gh-init-dir() {
@@ -135,7 +135,7 @@ check-function-file() {
       source $_move_function_file
     elif [ "$_duplicate_file_action" = "r" ] ; then
       # No change, the function will be overwritten naturally.
-      : # Bash Requires a "no-op" character to nop out conditional blocks
+      rm $_function_file 
     fi
   fi
 }
@@ -172,9 +172,10 @@ $2() {
 source $GITHUB_SH_DIR/hub.bash_completion.sh $2=hub" > $_function_file
 
         # Add the completions file for bash to the sh dir
-        cp $GITHUB_SH_PLUGIN_DIR/hub.bash_completion.sh $GITHUB_SH_DIR/.
+        cp $GITHUB_SH_INSTALL_DIR/hub.bash_completion.sh $GITHUB_SH_DIR/.
 
         source $_function_file
+        echo "github-sh: Created $2 alias for hub with token!" 
       fi
     else
       echo "Host '$1' not found!"
