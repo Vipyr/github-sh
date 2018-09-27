@@ -43,7 +43,6 @@ tokenfile() {
 }
 
 gh_init_gpg_agent() {
-  local __gpg_agent_rc
   gpg-agent --quiet 2>/dev/null
   __gpg_agent_rc=$?
   if [ "$__gpg_agent_rc" != "0" ] ; then
@@ -53,7 +52,6 @@ gh_init_gpg_agent() {
 
 gh_init_gpg_key() {
   gh_init_gpg_agent
-  local _key_exists
   gpg --quiet --list-keys | grep GithubShell >/dev/null
   _key_exists=$?
   if [ "$_key_exists" != "0" ] ; then
