@@ -169,7 +169,7 @@ usage: add_gh_host <hostname> <alias>
 $2() {
   GITHUB_HOST=$1 GITHUB_TOKEN=\$(get_gh_token $1) _gh \"\$@\"
 }
-source $GITHUB_SH_DIR/hub.bash_completion.sh $2=hub" > $_function_file
+$2=hub" > $_function_file
 
         source $_function_file
         echo "github-sh: Created $2 alias for hub with token!" 
