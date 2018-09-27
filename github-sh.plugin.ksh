@@ -99,7 +99,8 @@ _gh() {
     fi
   done
   # Set github.com as the GitHub host and retrieve your token.
-  hub "${args[@]}"
+  # For some stupid reason, you need to set these again in KSH
+  GITHUB_HOST=$GITHUB_HOST GITHUB_TOKEN=$GITHUB_TOKEN hub "${args[@]}"
 }
 
 check_function_file() {
