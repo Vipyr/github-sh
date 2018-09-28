@@ -43,15 +43,6 @@ tokenfile() {
 }
 
 gh-init-gpg-agent() {
-  local __gpg_agent_rc
-  gpg-agent --quiet 2>/dev/null
-  __gpg_agent_rc=$?
-  if [ "$__gpg_agent_rc" != "0" ] ; then
-    eval $(gpg-agent --daemon)
-  fi
-}
-
-gh-init-gpg-agent() {
   local _rc
   gpg-agent --quiet 2>/dev/null
   _rc=$?
@@ -60,7 +51,7 @@ gh-init-gpg-agent() {
     local IFS=$'\n'
     local gpg_ps_list=($(ps -u $USER | grep gpg-agent))
     for _line in "${gpg_ps_list[@]}" ; do
-      kill $(echo _line | awk -F\ '{print $1}')
+      kill $(echo _line | awk '{print $1}')
     done
     ls /tmp | grep gpg- >/dev/null
     _rc=$?
@@ -72,7 +63,20 @@ gh-init-gpg-agent() {
   fi
 }
 
+gh-init-gpg-key() {
+  gh-init-gpg-agent
+  local _key_exists
+  gpg --quiet --list-keys | grep GithubShell >/dev/null
+  _key_exists=$?
+  if [ "$_key_exists" != "0" ] ; then
+    echo "No GPG Key for github-sh detected, generating key \"GithubShell\" - this will take a while..."
+    gpg --batch --gen-key "$GITHUB_SH_INSTALL_DIR/gpg-gen-key"
+    echo "Key generated!"
+  fi
+}
+
 set-gh-token() {
+  gh_init_dir
   if [ "$1" = "" ] || [ "$2" = "" ] ; then
     echo "\
 usage: set-gh-token <token> <hostname>
@@ -86,6 +90,7 @@ usage: set-gh-token <token> <hostname>
 }
 
 get-gh-token() {
+  gh_init_dir
   if [ "$1" = "" ] ; then
     echo "\
 usage: get-gh-token <hostname>
