@@ -182,12 +182,43 @@ $2() {
 }
 compdef $2=hub" > $_function_file
         source $_function_file
+        echo "github-sh: Created alias '$2' for hub with token!" 
       fi
     else
       echo "Host '$1' not found!"
     fi
   fi
 }
+
+remove-gh-host() {
+  if [ "$1" = "" ] ; then 
+    echo"\
+usage: remove-gh-host <hostname>  Removes a specific host from your configuration
+       remove-gh-host --all       Removes all hosts and configurations for github-sh"
+    return 1
+  else
+    if [ "$1" = "--all" ] ; then
+      # Go through all the files in the sh dir, find the func names and unset them
+      for _file in $(ls -a $GITHUB_SH_DIR) ; do
+        if [ "$(echo $_file | cut -c 1-8)" = "gh-func-" ] ; then
+          func_name="$(echo $_file | awk -F\- '{print $3}')"
+          unset -f $func_name
+        fi
+      done
+      # Then just blow everything away 
+      rm -rf $GITHUB_SH_DIR/*
+    else
+      # Find the func-file based on the hostname, then find the func name, delete and unset
+      func_file="$(grep -l "$1" $GITHUB_SH_DIR/*)"
+      func_name="$(echo $func_file | awk -F\- '{print $3}')"
+      rm -f $GITHUB_SH_DIR/$1*
+      rm -f $GITHUB_SH_DIR/$func_file
+      unset -f $func_name
+    fi
+
+  fi
+}
+
 
 # Initialize the github shell directory
 gh-init-dir

@@ -23,29 +23,49 @@
 #           [x] read:discussion
 #   Co  py the token value
 #     *****IMPORTANT***** This is the only time you will see this token value!
-#   Run `set-gh-token <your-token> [github-hostname]`
-#       If `github-hostname` is not provided, `$GITHUB_HOST` is used.
-#       If `$GITHUB_HOST` is not set, then `github.com` is used.
-#   User 
-# 
-# Setup For GitHub Enterprise:
-#   Same as GitHub
+#   Run `add-gh-host <github-hostname> <alias>`
 
-GITHUB_SH_PLUGIN_DIR=$(dirname "$BASH_SOURCE")
+GITHUB_SH_INSTALL_DIR=$(dirname "$BASH_SOURCE")
 GITHUB_SH_DIR=$HOME/.github-sh
-if ! [ -e $GITHUB_SH_DIR ] ; then
-  mkdir $GITHUB_SH_DIR
-elif ! [ -d $GITHUB_SH_DIR ] ; then
-  echo "$GITHUB_SH_DIR exists and is not a directory, aborting 'source github-sh'"
-  return 1
-fi
+
+gh-init-dir() {
+  if ! [ -e $GITHUB_SH_DIR ] ; then
+    mkdir $GITHUB_SH_DIR
+  elif ! [ -d $GITHUB_SH_DIR ] ; then
+    echo "$GITHUB_SH_DIR exists and is not a directory, aborting 'source github-sh'"
+    return 1
+  fi
+}
 
 # GitHub Token Functions
 tokenfile() {
   echo "$GITHUB_SH_DIR/$1.token"
 }
 
+gh-init-gpg-agent() {
+  local __gpg_agent_rc
+  gpg-agent --quiet 2>/dev/null
+  __gpg_agent_rc=$?
+  if [ "$__gpg_agent_rc" != "0" ] ; then
+    eval $(gpg-agent --daemon)
+  fi
+}
+
+gh-init-gpg-key() {
+  gh-init-gpg-agent
+  local _key_exists
+  gpg --quiet --list-keys | grep GithubShell >/dev/null
+  _key_exists=$?
+  if [ "$_key_exists" != "0" ] ; then
+    echo "No GPG Key for github-sh detected, generating key \"GithubShell\" - this will take a while..."
+    gpg --batch --gen-key "$GITHUB_SH_INSTALL_DIR/gpg-gen-key"
+    echo "Key generated!"
+  fi
+}
+
 set-gh-token() {
+  gh-init-dir
+  gh-init-gpg-key
   if [ "$1" = "" ] || [ "$2" = "" ] ; then
     echo "\
 usage: set-gh-token <token> <hostname>
@@ -53,18 +73,21 @@ usage: set-gh-token <token> <hostname>
   <hostname>  The github hostname to set the token for i.e. github.com"
     return 1
   else
-    echo "$1" | openssl rsautl -encrypt -inkey $HOME/.ssh/id_rsa > $(tokenfile "$2")
+    echo "$1" | gpg --quiet -o $(tokenfile "$2") --encrypt --recipient GithubShell
+    echo "$2 token added!"
   fi
 }
 
 get-gh-token() {
+  gh-init-dir
+  gh-init-gpg-key
   if [ "$1" = "" ] ; then
     echo "\
 usage: get-gh-token <hostname>
   <hostname>  The github hostname to get the token for i.e. github.com"
     return 1
   else
-    openssl rsautl -decrypt -inkey $HOME/.ssh/id_rsa -in $(tokenfile "$1")
+    gpg --quiet --no-tty --decrypt $(tokenfile "$1") 2>/dev/null
   fi
 }
 
@@ -112,12 +135,13 @@ check-function-file() {
       source $_move_function_file
     elif [ "$_duplicate_file_action" = "r" ] ; then
       # No change, the function will be overwritten naturally.
-      : # Bash Requires a "no-op" character to nop out conditional blocks
+      rm $_function_file 
     fi
   fi
 }
 
 add-gh-host() {
+  gh-init-dir
   if [ "$1" = "" ] || [ "$2" = "" ] ; then
     echo "\
 usage: add-gh-host <hostname> <alias>
@@ -136,7 +160,7 @@ usage: add-gh-host <hostname> <alias>
         # Query for the PAT, if needed
         if ! [ -e $(tokenfile $1) ] ; then
           # In bash, read requires the '-p' argument for prompts
-          read -p "?Personal Access Token ($1): " _token
+          read -p "Personal Access Token ($1): " _token
           # Save the PAT, encrypted with an ssh key
           set-gh-token $_token $1
         fi
@@ -148,15 +172,48 @@ $2() {
 source $GITHUB_SH_DIR/hub.bash_completion.sh $2=hub" > $_function_file
 
         # Add the completions file for bash to the sh dir
-        cp $GITHUB_SH_PLUGIN_DIR/hub.bash_completion.sh $GITHUB_SH_DIR/.
+        cp $GITHUB_SH_INSTALL_DIR/hub.bash_completion.sh $GITHUB_SH_DIR/.
 
         source $_function_file
+        echo "github-sh: Created alias '$2' for hub with token!" 
       fi
     else
       echo "Host '$1' not found!"
     fi
   fi
 }
+
+remove-gh-host() {
+  if [ "$1" = "" ] ; then 
+    echo"\
+usage: remove-gh-host <hostname>  Removes a specific host from your configuration
+       remove-gh-host --all       Removes all hosts and configurations for github-sh"
+    return 1
+  else
+    if [ "$1" = "--all" ] ; then
+      # Go through all the files in the sh dir, find the func names and unset them
+      for _file in $(ls -a $GITHUB_SH_DIR) ; do
+        if [ "$(echo $_file | cut -c 1-8)" = "gh-func-" ] ; then
+          func_name="$(echo $_file | awk -F\- '{print $3}')"
+          unset -f $func_name
+        fi
+      done
+      # Then just blow everything away 
+      rm -rf $GITHUB_SH_DIR/*
+    else
+      # Find the func-file based on the hostname, then find the func name, delete and unset
+      func_file="$(grep -l "$1" $GITHUB_SH_DIR/*)"
+      func_name="$(echo $func_file | awk -F\- '{print $3}')"
+      rm -f $GITHUB_SH_DIR/$1*
+      rm -f $GITHUB_SH_DIR/$func_file
+      unset -f $func_name
+    fi
+
+  fi
+}
+
+# Initialize the github shell directory
+gh-init-dir
 
 # Add the path to this directory to `fpath`
 fpath=($GITHUB_SH_DIR $fpath)
