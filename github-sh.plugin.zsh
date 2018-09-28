@@ -43,10 +43,20 @@ tokenfile() {
 }
 
 gh-init-gpg-agent() {
-  local __gpg_agent_rc
+  local _rc
   gpg-agent --quiet 2>/dev/null
-  __gpg_agent_rc=$?
-  if [ "$__gpg_agent_rc" != "0" ] ; then
+  _rc=$?
+  if [ "$_rc" != "0" ] ; then
+    # Kill and clean up orphaned `gpg-agent`s
+    for _line in "${(@f)$(ps -u tsmanner | grep gpg-agent)}" ; do
+      kill ${${(ps: :)_line}[1]}
+    done
+    ls /tmp | grep gpg- >/dev/null
+    _rc=$?
+    if [ "$_rc" = "0" ] ; then
+      rm -rf /tmp/gpg-agent* 2>/dev/null
+    fi
+    # Then start up a new one
     eval $(gpg-agent --daemon)
   fi
 }
@@ -65,7 +75,6 @@ gh-init-gpg-key() {
 
 set-gh-token() {
   gh-init-dir
-  gh-init-gpg-key
   if [ "$1" = "" ] || [ "$2" = "" ] ; then
     echo "\
 usage: set-gh-token <token> <hostname>
@@ -80,7 +89,6 @@ usage: set-gh-token <token> <hostname>
 
 get-gh-token() {
   gh-init-dir
-  gh-init-gpg-key
   if [ "$1" = "" ] ; then
     echo "\
 usage: get-gh-token <hostname>
@@ -168,6 +176,8 @@ usage: add-gh-host <hostname> <alias>
         # Write and source the new shell function file
         echo "\
 $2() {
+  gh-init-gpg-agent
+  gh-init-gpg-key
   GITHUB_HOST=$1 GITHUB_TOKEN=\$(get-gh-token $1) _gh \$@
 }
 compdef $2=hub" > $_function_file
