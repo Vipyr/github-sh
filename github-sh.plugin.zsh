@@ -152,6 +152,7 @@ check-function-file() {
 
 add-gh-host() {
   gh-init-dir
+  gh-init-gpg-key
   if [ "$1" = "" ] || [ "$2" = "" ] ; then
     echo "\
 usage: add-gh-host <hostname> <alias>
@@ -192,6 +193,7 @@ compdef $2=hub" > $_function_file
 
 remove-gh-host() {
   gh-init-dir
+  gh-init-gpg-key
   if [ "$1" = "" ] ; then 
     echo"\
 usage: remove-gh-host <hostname>  Removes a specific host from your configuration
