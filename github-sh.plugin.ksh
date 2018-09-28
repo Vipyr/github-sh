@@ -49,7 +49,7 @@ gh_init_gpg_agent() {
     # Kill and clean up orphaned `gpg-agent`s
     IFS=$'\n' gpg_ps_list=($(ps -u $USER | grep gpg-agent))
     for _line in "${gpg_ps_list[@]}" ; do
-      kill $(echo _line | awk '{print $1}')
+      kill $(echo $_line | awk '{print $1}')
     done
     ls /tmp | grep gpg- >/dev/null
     _rc=$?
@@ -149,6 +149,7 @@ check_function_file() {
 }
 
 add_gh_host() {
+  gh_init_gpg_key
   gh_init_dir
   if [ "$1" = "" ] || [ "$2" = "" ] ; then
     echo "\
