@@ -51,21 +51,28 @@ gh-init-gpg-agent() {
   fi
 }
 
-gh-init-gpg-key() {
-  gh-init-gpg-agent
-  local _key_exists
-  gpg --quiet --list-keys | grep GithubShell >/dev/null
-  _key_exists=$?
-  if [ "$_key_exists" != "0" ] ; then
-    echo "No GPG Key for github-sh detected, generating key \"GithubShell\" - this will take a while..."
-    gpg --batch --gen-key "$GITHUB_SH_INSTALL_DIR/gpg-gen-key"
-    echo "Key generated!"
+gh-init-gpg-agent() {
+  local _rc
+  gpg-agent --quiet 2>/dev/null
+  _rc=$?
+  if [ "$_rc" != "0" ] ; then
+    # Kill and clean up orphaned `gpg-agent`s
+    local IFS=$'\n'
+    local gpg_ps_list=($(ps -u $USER | grep gpg-agent))
+    for _line in "${gpg_ps_list[@]}" ; do
+      kill $(echo _line | awk -F\ '{print $1}')
+    done
+    ls /tmp | grep gpg- >/dev/null
+    _rc=$?
+    if [ "$_rc" = "0" ] ; then
+      rm -rf /tmp/gpg-agent* 2>/dev/null
+    fi
+    # Then start up a new one
+    eval $(gpg-agent --daemon)
   fi
 }
 
 set-gh-token() {
-  gh-init-dir
-  gh-init-gpg-key
   if [ "$1" = "" ] || [ "$2" = "" ] ; then
     echo "\
 usage: set-gh-token <token> <hostname>
@@ -79,8 +86,6 @@ usage: set-gh-token <token> <hostname>
 }
 
 get-gh-token() {
-  gh-init-dir
-  gh-init-gpg-key
   if [ "$1" = "" ] ; then
     echo "\
 usage: get-gh-token <hostname>
@@ -167,6 +172,8 @@ usage: add-gh-host <hostname> <alias>
         # Write and source the new shell function file
         echo "\
 $2() {
+  gh-init-gpg-agent
+  gh-init-gpg-key
   GITHUB_HOST=$1 GITHUB_TOKEN=\$(get-gh-token $1) _gh \"\$@\"
 }
 source $GITHUB_SH_DIR/hub.bash_completion.sh $2=hub" > $_function_file
@@ -202,11 +209,14 @@ usage: remove-gh-host <hostname>  Removes a specific host from your configuratio
       rm -rf $GITHUB_SH_DIR/*
     else
       # Find the func-file based on the hostname, then find the func name, delete and unset
-      func_file="$(grep -l "$1" $GITHUB_SH_DIR/*)"
-      func_name="$(echo $func_file | awk -F\- '{print $3}')"
-      rm -f $GITHUB_SH_DIR/$1*
-      rm -f $GITHUB_SH_DIR/$func_file
-      unset -f $func_name
+      local func_files="$(grep -lr "$1" $GITHUB_SH_DIR/gh-func*)"
+      local func_file
+      for func_file in "${func_files[@]}" ; do
+        local func_name="$(basename $func_file | cut -d\- -f 3)"
+        rm -f $GITHUB_SH_DIR/$1*
+        rm -f $func_file
+        unset -f $func_name
+      done
     fi
 
   fi
