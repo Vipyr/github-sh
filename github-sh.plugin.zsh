@@ -48,7 +48,7 @@ gh-init-gpg-agent() {
   _rc=$?
   if [ "$_rc" != "0" ] ; then
     # Kill and clean up orphaned `gpg-agent`s
-    for _line in "${(@f)$(ps -u tsmanner | grep gpg-agent)}" ; do
+    for _line in "${(@f)$(ps -u $USER | grep gpg-agent)}" ; do
       kill ${${(ps: :)_line}[1]}
     done
     ls /tmp | grep gpg- >/dev/null
