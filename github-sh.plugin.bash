@@ -76,7 +76,7 @@ gh-init-gpg-key() {
 }
 
 set-gh-token() {
-  gh_init_dir
+  gh-init-dir
   if [ "$1" = "" ] || [ "$2" = "" ] ; then
     echo "\
 usage: set-gh-token <token> <hostname>
@@ -90,7 +90,7 @@ usage: set-gh-token <token> <hostname>
 }
 
 get-gh-token() {
-  gh_init_dir
+  gh-init-dir
   if [ "$1" = "" ] ; then
     echo "\
 usage: get-gh-token <hostname>
@@ -177,7 +177,7 @@ usage: add-gh-host <hostname> <alias>
         # Write and source the new shell function file
         echo "\
 $2() {
-  gh-init-gpg-agent
+  gh-init-dir
   gh-init-gpg-key
   GITHUB_HOST=$1 GITHUB_TOKEN=\$(get-gh-token $1) _gh \"\$@\"
 }
