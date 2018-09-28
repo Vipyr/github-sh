@@ -201,19 +201,22 @@ usage: remove-gh-host <hostname>  Removes a specific host from your configuratio
       # Go through all the files in the sh dir, find the func names and unset them
       for _file in $(ls -a $GITHUB_SH_DIR) ; do
         if [ "$(echo $_file | cut -c 1-8)" = "gh-func-" ] ; then
-          func_name="$(echo $_file | awk -F\- '{print $3}')"
-          unset -f $func_name
+          local func_name="$(echo $_file | awk -F\- '{print $3}')"
+          unfunction $func_name
         fi
       done
       # Then just blow everything away 
       rm -rf $GITHUB_SH_DIR/*
     else
       # Find the func-file based on the hostname, then find the func name, delete and unset
-      func_file="$(grep -l "$1" $GITHUB_SH_DIR/*)"
-      func_name="$(echo $func_file | awk -F\- '{print $3}')"
-      rm -f $GITHUB_SH_DIR/$1*
-      rm -f $GITHUB_SH_DIR/$func_file
-      unset -f $func_name
+      local func_files="$(grep -lr "$1" $GITHUB_SH_DIR)"
+      local func_file
+      for func_file in "${(@f)func_files}" ; do
+        local func_name="$(basename $func_file | cut -d\- -f 3)"
+        rm -f $GITHUB_SH_DIR/$1*
+        rm -f $func_file
+        unfunction $func_name
+      done
     fi
 
   fi
