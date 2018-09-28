@@ -149,6 +149,7 @@ check_function_file() {
 }
 
 add_gh_host() {
+  gh_init_gpg_key
   gh_init_dir
   if [ "$1" = "" ] || [ "$2" = "" ] ; then
     echo "\

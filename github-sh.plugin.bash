@@ -151,6 +151,7 @@ check-function-file() {
 }
 
 add-gh-host() {
+  gh-init-gpg-key
   gh-init-dir
   if [ "$1" = "" ] || [ "$2" = "" ] ; then
     echo "\
