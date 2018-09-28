@@ -176,7 +176,7 @@ usage: add-gh-host <hostname> <alias>
         # Write and source the new shell function file
         echo "\
 $2() {
-  gh-init-gpg-agent
+  gh-init-dir
   gh-init-gpg-key
   GITHUB_HOST=$1 GITHUB_TOKEN=\$(get-gh-token $1) _gh \$@
 }
@@ -191,6 +191,7 @@ compdef $2=hub" > $_function_file
 }
 
 remove-gh-host() {
+  gh-init-dir
   if [ "$1" = "" ] ; then 
     echo"\
 usage: remove-gh-host <hostname>  Removes a specific host from your configuration
