@@ -25,7 +25,7 @@
 #     *****IMPORTANT***** This is the only time you will see this token value!
 #   Run `add-gh-host <github-hostname> <alias>`
 
-GITHUB_SH_INSTALL_DIR=$( cd -P -- "$(dirname -- "$(command -v -- "$0")")" && pwd -P )
+GITHUB_SH_INSTALL_DIR=$(dirname ${.sh.file})
 GITHUB_SH_DIR=$HOME/.github-sh
 
 gh_init_dir() {
