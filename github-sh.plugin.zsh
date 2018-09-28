@@ -209,7 +209,7 @@ usage: remove-gh-host <hostname>  Removes a specific host from your configuratio
       rm -rf $GITHUB_SH_DIR/*
     else
       # Find the func-file based on the hostname, then find the func name, delete and unset
-      local func_files="$(grep -lr "$1" $GITHUB_SH_DIR)"
+      local func_files="$(grep -l "$1" $GITHUB_SH_DIR/gh-func-*)"
       local func_file
       for func_file in "${(@f)func_files}" ; do
         local func_name="$(basename $func_file | cut -d\- -f 3)"
