@@ -44,8 +44,19 @@ tokenfile() {
 
 gh_init_gpg_agent() {
   gpg-agent --quiet 2>/dev/null
-  __gpg_agent_rc=$?
-  if [ "$__gpg_agent_rc" != "0" ] ; then
+  _rc=$?
+  if [ "$_rc" != "0" ] ; then
+    # Kill and clean up orphaned `gpg-agent`s
+    IFS=$'\n' gpg_ps_list=($(ps -u $USER | grep gpg-agent))
+    for _line in "${gpg_ps_list[@]}" ; do
+      kill $(echo $_line | awk '{print $1}')
+    done
+    ls /tmp | grep gpg- >/dev/null
+    _rc=$?
+    if [ "$_rc" = "0" ] ; then
+      rm -rf /tmp/gpg-agent* 2>/dev/null
+    fi
+    # Then start up a new one
     eval $(gpg-agent --daemon)
   fi
 }
@@ -63,7 +74,6 @@ gh_init_gpg_key() {
 
 set_gh_token() {
   gh_init_dir
-  gh_init_gpg_key
   if [ "$1" = "" ] || [ "$2" = "" ] ; then
     echo "\
 usage: set_gh_token <token> <hostname>
@@ -78,7 +88,6 @@ usage: set_gh_token <token> <hostname>
 
 get_gh_token() {
   gh_init_dir
-  gh_init_gpg_key
   if [ "$1" = "" ] ; then
     echo "\
 usage: get_gh_token <hostname>
@@ -140,6 +149,7 @@ check_function_file() {
 }
 
 add_gh_host() {
+  gh_init_gpg_key
   gh_init_dir
   if [ "$1" = "" ] || [ "$2" = "" ] ; then
     echo "\
@@ -166,6 +176,8 @@ usage: add_gh_host <hostname> <alias>
         # Write and source the new shell function file
         echo "\
 $2() {
+  gh_init_dir
+  gh_init_gpg_key
   GITHUB_HOST=$1 GITHUB_TOKEN=\$(get_gh_token $1) _gh \"\$@\"
 }
 $2=hub" > $_function_file
