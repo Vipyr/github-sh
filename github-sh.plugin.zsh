@@ -28,6 +28,7 @@
 GITHUB_SH_INSTALL_DIR=$(dirname ${(%):-%N})
 GITHUB_SH_DIR=$HOME/.github-sh
 
+
 gh-init-dir() {
   if ! [ -e $GITHUB_SH_DIR ] ; then
     mkdir $GITHUB_SH_DIR
@@ -37,10 +38,12 @@ gh-init-dir() {
   fi
 }
 
+
 # GitHub Token Functions
 tokenfile() {
   echo "$GITHUB_SH_DIR/$1.token"
 }
+
 
 gh-init-gpg-agent() {
   local _rc
@@ -60,6 +63,7 @@ gh-init-gpg-agent() {
     eval $(gpg-agent --daemon)
   fi
 }
+
 
 gh-init-gpg-key() {
   gh-init-gpg-agent
@@ -99,6 +103,7 @@ usage: get-gh-token <hostname>
   fi
 }
 
+
 # Add a `_gh` command that wraps `hub`
 _gh() {
   local -a args
@@ -114,6 +119,7 @@ _gh() {
   # Set github.com as the GitHub host and retrieve your token.
   hub $args
 }
+
 
 check-function-file() {
   if [ -e "$_function_file" ] ; then
@@ -149,6 +155,25 @@ check-function-file() {
     fi
   fi
 }
+
+
+check-gh-host() {
+  gh-init-dir
+  gh-init-gpg-key
+  if [ "$1" = "" ] ; then 
+    echo "\
+usage: remove-gh-host <hostname>  Check that your token works on the host"
+    return 1
+  else 
+    local response
+    response=$(GITHUB_TOKEN=$(get-gh-token $1) curl https://api.$1/user -H "Authorization: token $GITHUB_TOKEN") 2>/dev/null
+    echo $response | grep "Bad credentials" >/dev/null
+    if [ $? -ne 0 ] ; then
+      return 1
+    fi
+  fi
+}
+
 
 add-gh-host() {
   gh-init-dir
@@ -190,6 +215,7 @@ compdef $2=hub" > $_function_file
     fi
   fi
 }
+
 
 remove-gh-host() {
   gh-init-dir
