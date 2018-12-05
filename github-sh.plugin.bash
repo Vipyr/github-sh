@@ -50,9 +50,11 @@ gh-init-gpg-agent() {
     # Kill and clean up orphaned `gpg-agent`s
     local IFS=$'\n'
     local gpg_ps_list=($(ps -u $USER | grep gpg-agent))
-    for _line in "${gpg_ps_list[@]}" ; do
-      kill $(echo $_line | awk '{print $1}')
-    done
+    if [[ ! -z "${gpg_ps_list[@]}" ]]; then 
+      for _line in "${gpg_ps_list[@]}" ; do
+        kill $(echo $_line | awk '{print $1}')
+      done
+    fi
     ls /tmp | grep gpg- >/dev/null
     _rc=$?
     if [ "$_rc" = "0" ] ; then
