@@ -104,7 +104,7 @@ usage: get-gh-token <hostname>
   <hostname>  The github hostname to get the token for i.e. github.com"
     return 1
   else
-    gpg --quiet --no-tty --decrypt $(tokenfile "$1") >& /dev/null
+    gpg --quiet --no-tty --decrypt $(tokenfile "$1") 2> /dev/null
   fi
 }
 
