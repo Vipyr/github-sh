@@ -43,7 +43,7 @@ tokenfile() {
 }
 
 gh_init_gpg_agent() {
-  gpg-agent --quiet 2>/dev/null
+  gpg-agent --no-use-standard-socket --quiet 2>/dev/null
   _rc=$?
   if [ "$_rc" != "0" ] ; then
     # Kill and clean up orphaned `gpg-agent`s
@@ -57,7 +57,7 @@ gh_init_gpg_agent() {
       rm -rf /tmp/gpg-agent* 2>/dev/null
     fi
     # Then start up a new one
-    eval $(gpg-agent --daemon)
+    eval $(gpg-agent --no-use-standard-socket --daemon)
   fi
 }
 
