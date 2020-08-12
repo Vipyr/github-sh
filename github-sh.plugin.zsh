@@ -47,17 +47,17 @@ tokenfile() {
 
 gh-init-gpg-agent() {
   local _rc
-  gpg-agent --no-use-standard-socket --quiet 2>/dev/null
+  gpg-agent --no-use-standard-socket --quiet >& /dev/null
   _rc=$?
   if [ "$_rc" != "0" ] ; then
     # Kill and clean up orphaned `gpg-agent`s
     for _line in "${(@f)$(ps -u $USER | grep gpg-agent)}" ; do
       kill ${${(ps: :)_line}[1]}
     done
-    ls /tmp | grep gpg- >/dev/null
+    ls /tmp | grep gpg- >& /dev/null
     _rc=$?
     if [ "$_rc" = "0" ] ; then
-      rm -rf /tmp/gpg-agent* 2>/dev/null
+      find /tmp/gpg-* -maxdepth 0 -user $USER -exec rm -rf {} \;
     fi
     # Then start up a new one
     eval $(gpg-agent --no-use-standard-socket --daemon)
@@ -68,7 +68,7 @@ gh-init-gpg-agent() {
 gh-init-gpg-key() {
   gh-init-gpg-agent
   local _key_exists
-  gpg --quiet --list-keys | grep GithubShell >/dev/null
+  gpg --quiet --list-keys | grep GithubShell >& /dev/null
   _key_exists=$?
   if [ "$_key_exists" != "0" ] ; then
     echo "No GPG Key for github-sh detected, generating key \"GithubShell\" - this will take a while..."
@@ -78,13 +78,18 @@ gh-init-gpg-key() {
 }
 
 set-gh-token() {
+  local _token
   gh-init-dir
-  if [ "$1" = "" ] || [ "$2" = "" ] ; then
+  if [ "$1" = "" ] ; then
     echo "\
-usage: set-gh-token <token> <hostname>
-  <token>     Your Personal Access Token for <hostname>
+usage: set-gh-token [<token>] <hostname>
+  <token>     Your Personal Access Token for <hostname>. If not provided, the user will be prompted.
   <hostname>  The github hostname to set the token for i.e. github.com"
     return 1
+  elif [ "$2" = "" ] ; then
+    read "?Personal Access Token ($1): " _token
+    # Save the PAT, encrypted with a gpg key
+    set-gh-token $_token $1
   else
     echo "$1" | gpg --quiet -o $(tokenfile "$2") --encrypt --recipient GithubShell
     echo "$2 token added!"
@@ -99,7 +104,7 @@ usage: get-gh-token <hostname>
   <hostname>  The github hostname to get the token for i.e. github.com"
     return 1
   else
-    gpg --quiet --no-tty --decrypt $(tokenfile "$1") 2>/dev/null
+    gpg --quiet --no-tty --decrypt $(tokenfile "$1") 2> /dev/null
   fi
 }
 
@@ -160,14 +165,14 @@ check-function-file() {
 check-gh-host() {
   gh-init-dir
   gh-init-gpg-key
-  if [ "$1" = "" ] ; then 
+  if [ "$1" = "" ] ; then
     echo "\
 usage: remove-gh-host <hostname>  Check that your token works on the host"
     return 1
-  else 
+  else
     local response
-    response=$(GITHUB_TOKEN=$(get-gh-token $1) curl https://api.$1/user -H "Authorization: token $GITHUB_TOKEN") 2>/dev/null
-    echo $response | grep "Bad credentials" >/dev/null
+    response=$(GITHUB_TOKEN=$(get-gh-token $1) curl https://api.$1/user -H "Authorization: token $GITHUB_TOKEN") >& /dev/null
+    echo $response | grep "Bad credentials" >& /dev/null
     if [ $? -ne 0 ] ; then
       return 1
     fi
@@ -195,9 +200,8 @@ usage: add-gh-host <hostname> <alias>
       if [ "$_function_file" != "" ] ; then
         # Query for the PAT, if needed
         if ! [ -e $(tokenfile $1) ] ; then
-          read "?Personal Access Token ($1): " _token
-          # Save the PAT, encrypted with an ssh key
-          set-gh-token $_token $1
+          # Get and save the PAT, encrypted with a gpg key
+          set-gh-token $1
         fi
         # Write and source the new shell function file
         echo "\
@@ -208,7 +212,7 @@ $2() {
 }
 compdef $2=hub" > $_function_file
         source $_function_file
-        echo "github-sh: Created alias '$2' for hub with token!" 
+        echo "github-sh: Created alias '$2' for hub with token!"
       fi
     else
       echo "Host '$1' not found!"
@@ -220,7 +224,7 @@ compdef $2=hub" > $_function_file
 remove-gh-host() {
   gh-init-dir
   gh-init-gpg-key
-  if [ "$1" = "" ] ; then 
+  if [ "$1" = "" ] ; then
     echo"\
 usage: remove-gh-host <hostname>  Removes a specific host from your configuration
        remove-gh-host --all       Removes all hosts and configurations for github-sh"
@@ -232,7 +236,7 @@ usage: remove-gh-host <hostname>  Removes a specific host from your configuratio
         local func_name="$(basename $_file | cut -d\- -f3)"
         unfunction $func_name
       done
-      # Then just blow everything away 
+      # Then just blow everything away
       rm -rf $GITHUB_SH_DIR/*
     else
       # Find the func-file based on the hostname, then find the func name, delete and unset
